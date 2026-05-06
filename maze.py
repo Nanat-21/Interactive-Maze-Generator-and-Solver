@@ -104,3 +104,39 @@ def generate_steps(maze, extra_walls=False):
 
     maze.choose_start_end()
     yield (-1, -1, 1.0)   
+
+# Solver (backtracking mouse)
+def solve_steps(maze):
+    sr, sc = maze.start
+    er, ec = maze.end
+    stack  = [(sr, sc)]
+    path   = {(sr, sc)}
+    dead   = set()
+
+    DIRS = [('N',  1, 0), ('S', -1, 0), ('E', 0,  1), ('W', 0, -1)]
+
+    while stack:
+        r, c = stack[-1]
+        if (r, c) == (er, ec):
+            yield (r, c, frozenset(path), frozenset(dead), True)
+            return
+
+        moves = []
+        for d, dr, dc in DIRS:
+            nr, nc = r + dr, c + dc
+            if maze.can_go(r, c, d) and (nr, nc) not in dead and (nr, nc) not in path:
+                moves.append((nr, nc))
+
+        if not moves:
+            dead.add((r, c))
+            path.discard((r, c))
+            stack.pop()
+        else:
+            random.shuffle(moves)
+            nr, nc = moves[0]
+            path.add((nr, nc))
+            stack.append((nr, nc))
+
+        yield (r, c, frozenset(path), frozenset(dead), False)
+
+    yield (-1, -1, frozenset(path), frozenset(dead), False)
