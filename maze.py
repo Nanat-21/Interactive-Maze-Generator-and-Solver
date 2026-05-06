@@ -55,3 +55,52 @@ class Maze:
         self.eastWall[er][self.C] = 0 
         self.start = (sr, 0)
         self.end   = (er, self.C - 1)
+
+# Generator (stack-based DFS "mouse")
+def generate_steps(maze, extra_walls=False):
+    R, C = maze.R, maze.C
+    sr, sc = random.randint(0, R - 1), random.randint(0, C - 1)
+    maze.visited[sr][sc] = True
+    stack = [(sr, sc)]
+    total = R * C
+    visited_count = 1
+
+    DIRS = [('N',  1, 0), ('S', -1, 0), ('E', 0,  1), ('W', 0, -1)]
+
+    while stack:
+        r, c = stack[-1]
+        neighbours = []
+        for d, dr, dc in DIRS:
+            nr, nc = r + dr, c + dc
+            if 0 <= nr < R and 0 <= nc < C and not maze.visited[nr][nc]:
+                neighbours.append((d, nr, nc))
+
+        if not neighbours:
+            stack.pop()
+        else:
+            random.shuffle(neighbours)
+            d, nr, nc = neighbours[0]
+            if   d == 'N': maze.remove_north_wall(r, c)
+            elif d == 'S': maze.remove_south_wall(r, c)
+            elif d == 'E': maze.remove_east_wall(r, c)
+            elif d == 'W': maze.remove_west_wall(r, c)
+            maze.visited[nr][nc] = True
+            visited_count += 1
+            stack.append((nr, nc))
+            yield (r, c, visited_count / total)
+
+    if extra_walls:
+        n_extra = max(1, (R * C) // 20)
+        for _ in range(n_extra):
+            r  = random.randint(0, R - 1)
+            c  = random.randint(0, C - 1)
+            dr, dc, d = random.choice([(1,0,'N'),(-1,0,'S'),(0,1,'E'),(0,-1,'W')])
+            nr, nc = r + dr, c + dc
+            if 0 <= nr < R and 0 <= nc < C:
+                if   d == 'N': maze.remove_north_wall(r, c)
+                elif d == 'S': maze.remove_south_wall(r, c)
+                elif d == 'E': maze.remove_east_wall(r, c)
+                elif d == 'W': maze.remove_west_wall(r, c)
+
+    maze.choose_start_end()
+    yield (-1, -1, 1.0)   
