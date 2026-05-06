@@ -140,3 +140,62 @@ def solve_steps(maze):
         yield (r, c, frozenset(path), frozenset(dead), False)
 
     yield (-1, -1, frozenset(path), frozenset(dead), False)
+
+# Renderer
+class Renderer:
+    def __init__(self, screen, maze):
+        self.screen = screen
+        self.maze   = maze
+        self.cs     = CELL_SIZE
+        self.off_x  = 40   
+        self.off_y  = 80   
+
+    def cell_rect(self, r, c):
+        R = self.maze.R
+        x = self.off_x + c * self.cs
+        y = self.off_y + (R - 1 - r) * self.cs
+        return x, y, self.cs, self.cs
+
+    def draw(self, mouse_rc=None, path=None, dead=None):
+        maze = self.maze
+        R, C = maze.R, maze.C
+        cs   = self.cs
+        scr  = self.screen
+
+        # Cell fills
+        for r in range(R):
+            for c in range(C):
+                x, y, w, h = self.cell_rect(r, c)
+                col = BG
+                if path and (r, c) in path: col = (80, 20, 20)
+                if dead  and (r, c) in dead: col = (15, 35, 70)
+                pygame.draw.rect(scr, col, (x, y, w, h))
+
+        # Start / end highlights
+        if maze.start:
+            x, y, w, h = self.cell_rect(*maze.start)
+            pygame.draw.rect(scr, (70, 50, 10), (x, y, w, h))
+        if maze.end:
+            x, y, w, h = self.cell_rect(*maze.end)
+            pygame.draw.rect(scr, (70, 50, 10), (x, y, w, h))
+
+        # Walls
+        for r in range(R):
+            for c in range(C):
+                x, y, w, h = self.cell_rect(r, c)
+                if maze.northWall[r][c]:
+                    pygame.draw.line(scr, WALL_COL, (x, y + h), (x + w, y + h), WALL_WIDTH)
+                if maze.northWall[r + 1][c]:
+                    pygame.draw.line(scr, WALL_COL, (x, y), (x + w, y), WALL_WIDTH)
+                if maze.eastWall[r][c]:
+                    pygame.draw.line(scr, WALL_COL, (x, y), (x, y + h), WALL_WIDTH)
+                if maze.eastWall[r][c + 1]:
+                    pygame.draw.line(scr, WALL_COL, (x + w, y), (x + w, y + h), WALL_WIDTH)
+
+        if mouse_rc and mouse_rc[0] >= 0:
+            mr, mc = mouse_rc
+            cx = self.off_x + mc * cs + cs // 2
+            cy = self.off_y + (R - 1 - mr) * cs + cs // 2
+            rad = max(3, cs // 4)
+            pygame.draw.circle(scr, MOUSE_COL, (cx, cy), rad)
+
