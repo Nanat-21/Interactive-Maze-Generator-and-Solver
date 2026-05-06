@@ -199,3 +199,150 @@ class Renderer:
             rad = max(3, cs // 4)
             pygame.draw.circle(scr, MOUSE_COL, (cx, cy), rad)
 
+# Main application
+def main():
+    pygame.init()
+    font      = pygame.font.SysFont('consolas', 14)
+    font_big  = pygame.font.SysFont('consolas', 18, bold=True)
+
+    maze       = None
+    renderer   = None
+    gen_iter   = None
+    sol_iter   = None
+    phase      = 'idle'         
+    extra_mode = False
+    speed_idx  = DEFAULT_SPEED_IDX
+    mouse_rc   = None
+    path_set   = set()
+    dead_set   = set()
+    status_msg = "Press G to generate a maze"
+    last_step  = 0
+    pct        = 0.0
+
+    W = COLS * CELL_SIZE + 80
+    H = ROWS * CELL_SIZE + 120
+    screen = pygame.display.set_mode((W, H))
+    pygame.display.set_caption("Maze Generator & Solver")
+    clock = pygame.time.Clock()
+
+    def new_maze():
+        nonlocal maze, renderer, gen_iter, sol_iter, phase
+        nonlocal mouse_rc, path_set, dead_set, status_msg, pct
+        maze      = Maze(ROWS, COLS)
+        renderer  = Renderer(screen, maze)
+        gen_iter  = generate_steps(maze, extra_walls=extra_mode)
+        sol_iter  = None
+        phase     = 'generating'
+        mouse_rc  = None
+        path_set  = set()
+        dead_set  = set()
+        status_msg = "Generating…"
+        pct        = 0.0
+
+    def draw_ui():
+        screen.fill(BG)
+        if renderer:
+            renderer.draw(mouse_rc, path_set, dead_set)
+        y_leg = H - 28
+        items = [
+            (MOUSE_COL, "mouse"),
+            (PATH_COL,  "path"),
+            (DEAD_COL,  "dead end"),
+            (ENTRY_COL, "start/end"),
+        ]
+        lx = 40
+        for col, label in items:
+            pygame.draw.circle(screen, col, (lx + 6, y_leg + 7), 5)
+            txt = font.render(label, True, DIM_COL)
+            screen.blit(txt, (lx + 15, y_leg))
+            lx += 90
+        st = font.render(status_msg, True, TEXT_COL)
+        screen.blit(st, (40, 14))
+        spd_s = f"Speed: {speed_idx+1}/{len(SPEED_STEPS)}   Extra walls: {'ON' if extra_mode else 'OFF'}   [G]enerate [S]olve [R]eset [E]xtra [+/-]speed [ESC]quit"
+        ht = font.render(spd_s, True, DIM_COL)
+        screen.blit(ht, (40, 34))
+        if phase == 'generating':
+            bar_w = int((W - 80) * pct)
+            pygame.draw.rect(screen, (40, 40, 50), (40, 56, W - 80, 8), border_radius=4)
+            pygame.draw.rect(screen, MOUSE_COL,    (40, 56, bar_w,  8), border_radius=4)
+        pygame.display.flip()
+
+    running = True
+    while running:
+        clock.tick(FPS)
+        now = time.time() * 1000  # ms
+
+        # Events
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    running = False
+                elif event.key == pygame.K_g:
+                    new_maze()
+                elif event.key == pygame.K_s:
+                    if maze and maze.start and phase in ('idle', 'done'):
+                        path_set.clear(); dead_set.clear()
+                        sol_iter = solve_steps(maze)
+                        phase = 'solving'
+                        status_msg = "Solving…"
+                        mouse_rc = None
+                elif event.key == pygame.K_r:
+                    if maze:
+                        path_set.clear(); dead_set.clear()
+                        mouse_rc = None
+                        sol_iter = None
+                        gen_iter = None
+                        phase = 'idle'
+                        status_msg = "Reset. Press S to solve or G to regenerate."
+                elif event.key == pygame.K_e:
+                    extra_mode = not extra_mode
+                    status_msg = f"Extra-wall mode {'ON' if extra_mode else 'OFF'}. Press G to regenerate."
+                elif event.key in (pygame.K_PLUS, pygame.K_EQUALS, pygame.K_KP_PLUS):
+                    speed_idx = min(speed_idx + 1, len(SPEED_STEPS) - 1)
+                elif event.key in (pygame.K_MINUS, pygame.K_KP_MINUS):
+                    speed_idx = max(speed_idx - 1, 0)
+
+        # Animation step 
+        delay = SPEED_STEPS[speed_idx]
+        do_step = (now - last_step >= delay) if delay > 0 else True
+
+        if do_step and phase == 'generating' and gen_iter:
+            try:
+                r, c, pct = next(gen_iter)
+                if r < 0:  #
+                    phase = 'done'
+                    mouse_rc = None
+                    status_msg = "Maze ready!  Press S to solve."
+                else:
+                    mouse_rc = (r, c)
+                last_step = now
+            except StopIteration:
+                phase = 'done'
+                mouse_rc = None
+                status_msg = "Maze ready!  Press S to solve."
+
+        if do_step and phase == 'solving' and sol_iter:
+            try:
+                mr, mc, ps, ds, done = next(sol_iter)
+                path_set = set(ps)
+                dead_set = set(ds)
+                mouse_rc = (mr, mc) if mr >= 0 else None
+                if done:
+                    phase = 'done'
+                    mouse_rc = None
+                    status_msg = f"Solved!  Path: {len(path_set)} cells  |  Dead ends: {len(dead_set)}"
+                last_step = now
+            except StopIteration:
+                phase = 'done'
+                status_msg = "No path found."
+
+        draw_ui()
+
+    pygame.quit()
+    sys.exit()
+
+
+if __name__ == '__main__':
+    main()
