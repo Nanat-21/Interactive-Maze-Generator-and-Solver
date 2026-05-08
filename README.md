@@ -30,18 +30,18 @@ The maze is represented using two arrays:
 
 * `northWall[r][c]`
 
-  * 1 → wall exists
-  * 0 → wall removed
+  * `1` → wall exists
+  * `0` → wall removed
 
 * `eastWall[r][c]`
 
-  * 1 → wall exists
-  * 0 → wall removed
+  * `1` → wall exists
+  * `0` → wall removed
 
 Special structure:
 
-* Row 0 represents the bottom boundary (phantom row)
-* Column 0 represents the left boundary
+* Row `0` represents the bottom boundary (phantom row)
+* Column `0` represents the left boundary
 
 ---
 
@@ -75,7 +75,7 @@ An optional mode allows the mouse to remove **extra walls (1 in 20)**:
 
 * Creates loops (cycles) in the maze
 * Breaks the "shoulder-to-the-wall" rule
-* Demonstrates difference between:
+* Demonstrates the difference between:
 
   * Tree structure (perfect maze)
   * Graph with cycles
@@ -104,13 +104,22 @@ An optional mode allows the mouse to remove **extra walls (1 in 20)**:
 
 ## 🎥 Demonstration
 
-The project includes:
+Loom Recording:
+https://www.loom.com/share/c67b68f6a9044381a95c5ab4c6616402
 
-* Dynamic maze generation ("mouse eating walls")
-* Step-by-step solving visualization
+The demonstration includes:
+
+* Dynamic maze generation using the DFS "mouse" algorithm
+* Animated wall removal ("mouse eating walls")
+* Maze solving with backtracking
+* Red path visualization
+* Blue dead-end visualization
+* Bonus cycle generation using extra-wall mode
+* Keyboard interaction and speed adjustment
 
 ---
 
 ## 📂 Author
 
 * Nanat Abeshu
+* I.D.: UGR/6300/16
